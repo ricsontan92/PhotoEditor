@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\context.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\init.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\input.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\monitor.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\platform.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\vulkan.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\window.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\egl_context.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\osmesa_context.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\null_init.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\null_monitor.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\null_window.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\null_joystick.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\win32_module.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\win32_time.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\win32_thread.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\win32_init.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\win32_joystick.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\win32_monitor.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\win32_window.c" />
+    <ClCompile Include="$(SolutionDir)\3rdParties\glfw\src\wgl_context.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\include\GLFW\glfw3.h" />
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\include\GLFW\glfw3native.h" />
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\src\internal.h" />
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\src\platform.h" />
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\src\mappings.h" />
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\src\null_platform.h" />
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\src\null_joystick.h" />
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\src\win32_time.h" />
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\src\win32_thread.h" />
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\src\win32_platform.h" />
+    <ClInclude Include="$(SolutionDir)\3rdParties\glfw\src\win32_joystick.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{9C46A12D-1186-3C85-AE30-1EC153C134E0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{83D41D41-1488-3469-9D51-2B494B0866A9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
