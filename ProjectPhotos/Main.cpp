@@ -2,6 +2,7 @@
 #include <sstream>
 #include <thread>
 
+#include "Events.h"
 #include "PhotoEditor.h"
 
 #include "LibCV/Image.h"
@@ -19,8 +20,15 @@ int main()
     auto appManager = LibGraphics::AppManager::Create();
     {
         auto sharedData = std::make_shared<PanelSharedData>();
-        sharedData->Application = appManager->CreateApp("FoodieLite", 1280, 720);
+        sharedData->Application = appManager->CreateApp("PhotoLite", 1280, 720);
+        sharedData->EvtSystem = std::make_shared<LibCore::Event::EventSystem>();
+        sharedData->ThreadPool = std::make_shared<LibCore::Async::ThreadPool>();
+
         {
+            sharedData->Application->RegisterDragDropCallback([sharedData](const std::vector<LibCore::Filesystem::Path>& paths) {
+                sharedData->EvtSystem->Emit(Event::DragDropFiles{ paths });
+            });
+
             // Setup Dear ImGui context
             IMGUI_CHECKVERSION();
             auto imguiCtx = ImGui::CreateContext();
@@ -53,35 +61,9 @@ int main()
             // initialise
             photoEditor->Init();
 
-#if 0
-            {
-                std::vector<std::future<void>> futures;
-                for (const auto& entry : std::filesystem::directory_iterator("assets/images/to_edit/unedited/")) 
-                {
-                    auto fnc = [entry]() {
-                        auto filename = "assets/images/to_edit/edited/" / entry.path().filename();
-                        auto testCV = LibCV::Image::Create(entry.path().string())->AutoEnhance();
-                        testCV->Write(filename.string().c_str());
-                    };
-                    futures.emplace_back(std::move(std::async(fnc)));
-
-                    while (futures.size() >= std::thread::hardware_concurrency() / 2) 
-                    {
-                        for (size_t i = 0; i < futures.size(); ++i) 
-                        {
-                            if (futures[i].wait_for(std::chrono::seconds{ 0 }) == std::future_status::ready)
-                            {
-                                futures.erase(futures.begin() + i);
-                            }
-                        }
-                    }
-
-                    std::this_thread::sleep_for(std::chrono::milliseconds{ 16 });
-                }
-            }
-#endif
-
             sharedData->Application->Run([&](float dt) {
+                auto now = std::chrono::high_resolution_clock::now();
+
                 // Start the Dear ImGui frame
                 ImGui_ImplOpenGL3_NewFrame();
                 ImGui_ImplGlfw_NewFrame();
@@ -129,6 +111,10 @@ int main()
                 ImGui::ResetMouseDragDelta(0);
                 ImGui::ResetMouseDragDelta(1);
                 ImGui::ResetMouseDragDelta(2);
+
+                sharedData->EvtSystem->ProcessEvents(
+                    std::max(0.0f, dt - std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - now).count() / 1000.0f)
+                );
 
                 return false;
             });

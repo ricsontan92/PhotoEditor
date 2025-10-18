@@ -4,8 +4,13 @@
 #include <vector>
 #include <memory>
 
+#include "LibCore/Path.h"
+#include "LibCore/Future.h"
+
 #include "LibCV/ImageFX.h"
+
 #include "LibGraphics/TextureFilter.h"
+#include "LibGraphics/DefaultShaders.h"
 
 struct FilterData
 {
@@ -14,40 +19,90 @@ struct FilterData
 	std::shared_ptr<LibGraphics::TextureFilter> Filter;
 };
 
-struct ImageProcessor
+class ImageProcessor
 {
+public:
+	enum class IMAGE_SETTINGS
+	{
+		BRIGHTNESS,
+		CONSTRAST,
+		SHARPNESS,
+		HUE,
+		SATURATION,
+		LIGHTNESS,
+		TEMPERATURE,
+		GAMMA
+	};
+
 	ImageProcessor()
-		: ImageFXFlags{
+		: imageFXFlags{
 			LibCV::ImageFX::AUTO_BRIGHTNESS_CONTRAST |
 			LibCV::ImageFX::AUTO_GAMMA |
 			LibCV::ImageFX::AUTO_COLOR_TEMP /* |
 			LibCV::ImageFX::AUTO_CLAHE |
 			LibCV::ImageFX::AUTO_DETAIL_ENHANCE |
 			LibCV::ImageFX::AUTO_DENOISE*/ }
-		, ImageFilters{}
-		, ImageSettings{}
-		, Image{nullptr}
+		, imageFilters{}
+		, sharpnessFilter{ nullptr }
+		, contrastFilter{ nullptr }
+		, brightnessFilter{ nullptr }
+		, hslFilter{ nullptr }
+		, temperatureFilter{ nullptr }
+		, gammaFilter{ nullptr }
+		, procCVImage{ nullptr }
+		, origGLImage{ nullptr }
+		, procGLImages{ nullptr, nullptr }
 	{
-
+		brightnessFilter	= LibGraphics::TextureFilter::CreateFromShader(LibGraphics::BRIGHTNESS_SHADER);
+		contrastFilter		= LibGraphics::TextureFilter::CreateFromShader(LibGraphics::CONTRAST_SHADER);
+		sharpnessFilter		= LibGraphics::TextureFilter::CreateFromShader(LibGraphics::SHARPEN_SHADER);
+		hslFilter			= LibGraphics::TextureFilter::CreateFromShader(LibGraphics::HSL_ADJUSTMENT_SHADER);
+		temperatureFilter	= LibGraphics::TextureFilter::CreateFromShader(LibGraphics::TEMPERATURE_SHADER);
+		gammaFilter			= LibGraphics::TextureFilter::CreateFromShader(LibGraphics::GAMMA_SHADER);
 	}
 
-	unsigned ImageFXFlags;
-	std::vector<FilterData> ImageFilters;
-	std::vector<std::shared_ptr<LibGraphics::TextureFilter>> ImageSettings;
-	std::shared_ptr<LibGraphics::Texture> Image;
+	bool LoadImage(const LibCore::Filesystem::Path& path);
+	bool TestLoadImageCompleted();
 
-	std::shared_ptr<LibGraphics::Texture> Process(const std::shared_ptr<LibGraphics::Texture>& image)
-	{ 
-		Image = image;
+	const std::shared_ptr<LibGraphics::Texture>& GetProcessedGLImage() const;
+	const std::shared_ptr<LibGraphics::Texture>& GetOriginalGLImage() const;
 
-		// add settings first
-		for (auto& setting : ImageSettings)
-			Image = std::move(setting->Apply(Image));
+	std::shared_ptr<FilterData> AddImageFilters(
+		const std::string& filterName,
+		const std::shared_ptr<LibGraphics::TextureFilter>& textureFilters);
+	const std::vector<std::shared_ptr<FilterData>>& GetImageFilters() const;
+	void SetImageFilters(const std::vector<std::shared_ptr<FilterData>>& filters);
+	void RemoveImageFilters(const std::shared_ptr<FilterData>& filter);
 
-		// fitlers next
-		for (auto& filter : ImageFilters)
-			Image = std::move(filter.Active ? filter.Filter->Apply(Image) : Image);
+	void SetImageSettingDefaults();
+	float GetImageSetting(IMAGE_SETTINGS setting) const;
+	LibCore::Math::Vec2 GetImageSettingRange(IMAGE_SETTINGS setting) const;
+	void SetImageSetting(IMAGE_SETTINGS setting, float value);
 
-		return Image;
-	}
+	unsigned GetFXFlags() const;
+	void SetFXFlags(unsigned flags);
+
+	unsigned GetImageHeight() const;
+	unsigned GetImageWidth() const;
+
+private:
+	unsigned imageFXFlags;
+
+private:
+	std::vector<std::shared_ptr<FilterData>> imageFilters;
+	
+private:
+	void ProcessGLChanges();
+	std::shared_ptr<LibGraphics::TextureFilter> sharpnessFilter;
+	std::shared_ptr<LibGraphics::TextureFilter> contrastFilter;
+	std::shared_ptr<LibGraphics::TextureFilter> brightnessFilter;
+	std::shared_ptr<LibGraphics::TextureFilter> hslFilter;
+	std::shared_ptr<LibGraphics::TextureFilter> temperatureFilter;
+	std::shared_ptr<LibGraphics::TextureFilter> gammaFilter;
+
+private:
+	LibCore::Async::Future<void> loadImageFuture;
+
+	std::shared_ptr<LibCV::Image> origCVImage, procCVImage;
+	std::shared_ptr<LibGraphics::Texture> origGLImage, procGLImages[2];
 };

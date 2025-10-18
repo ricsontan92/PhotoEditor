@@ -1,3 +1,5 @@
+#pragma once
+
 #include "CannyShaders.h"
 
 namespace LibGraphics

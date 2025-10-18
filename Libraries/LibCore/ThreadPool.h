@@ -6,8 +6,9 @@
 #include <mutex>
 #include <queue>
 #include <vector>
-#include <future>
 #include <atomic>
+
+#include "Future.h"
 
 namespace LibCore
 {
@@ -48,11 +49,11 @@ namespace LibCore
             }
 
             template<typename F, typename... Args>
-            auto Enqueue(F&& f, Args&&... args)-> std::future<std::invoke_result_t<F, Args...>>
+            auto Enqueue(F&& f, Args&&... args)-> Future<std::invoke_result_t<F, Args...>>
             {
                 using ReturnType = std::invoke_result_t<F, Args...>;
                 auto promise = std::make_shared<std::promise<ReturnType>>();
-                auto future = promise->get_future();
+                auto future = Future<ReturnType>(std::move(promise->get_future()));
 
                 auto boundTask = [promise, func = std::forward<F>(f), ... args = std::forward<Args>(args)]() mutable {
                     try {

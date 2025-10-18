@@ -13,6 +13,13 @@ namespace LibCV
 		return results;
 	}
 
+	std::shared_ptr<Image> Image::Clone() const
+	{
+		std::shared_ptr<Image> results = std::shared_ptr<Image>{ new Image{} };
+		results->cvMatPtr = new cv::Mat{ ((cv::Mat*)cvMatPtr)->clone() };
+		return results;
+	}
+
 	void Image::Show(const char* windowName, float resize) const
 	{
 		cv::Mat clone = resize != 1.0f ? ((cv::Mat*)cvMatPtr)->clone() : *((cv::Mat*)cvMatPtr);
@@ -145,6 +152,9 @@ namespace LibCV
 
 	std::shared_ptr<Image> Image::Resize(float percentage) const
 	{
+		if (std::fabs(percentage - 1.0f) < FLT_EPSILON)
+			return Clone();
+
 		auto ht = ((cv::Mat*)cvMatPtr)->rows;
 		auto wd = ((cv::Mat*)cvMatPtr)->cols;
 		return Resize(static_cast<unsigned>(roundf(wd * percentage)), static_cast<unsigned>(std::roundf(ht * percentage)));

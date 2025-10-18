@@ -11,7 +11,6 @@ UIPhoto::UIPhoto(
 	, imageProcessor{ imageProcessor }
     , imageZoom{ 0.0f }
     , imageOffset{ 0, 0 }
-    , enhancedImage{ nullptr }
     , isImageDiffClicked{ false }
     , dragOffset{ 0 }
 {
@@ -19,7 +18,7 @@ UIPhoto::UIPhoto(
 
 void UIPhoto::Init()
 {
-    LoadPhoto("assets/images/DSC_0857.jpg");
+    imageProcessor->LoadImage("assets/images/DSC_0857.jpg");
 }
 
 void UIPhoto::Render(float dt)
@@ -27,38 +26,13 @@ void UIPhoto::Render(float dt)
     if (isImageDiffClicked && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         isImageDiffClicked = false;
 
-    bool isLoadingImage = IsLoading();
-
-    if (isLoadingImage &&
-        loadPhotoFuture.wait_for(std::chrono::seconds{ 0 }) == std::future_status::ready)
-    {
-        // ensure future is invalid
-        loadPhotoFuture.get();
-
-        // concert to GPU image
-        const auto enhancedImageData = procCVImage->GetImageData();
-        enhancedImage = LibGraphics::Texture::CreateFromData(
-            enhancedImageData.Pixels,
-            enhancedImageData.ImageWidth,
-            enhancedImageData.ImageHeight,
-            LibGraphics::Texture::FORMAT::BGR24);
-
-        const auto origImageData = origCVImage->GetImageData();
-        origImage = LibGraphics::Texture::CreateFromData(
-            origImageData.Pixels,
-            origImageData.ImageWidth,
-            origImageData.ImageHeight,
-            LibGraphics::Texture::FORMAT::BGR24);
-    }
+    const bool isLoadingImage = imageProcessor->TestLoadImageCompleted();
 
     // fit to content size
-    std::shared_ptr<LibGraphics::Texture> procImage = (!isLoadingImage && enhancedImage) ? enhancedImage->Clone() : nullptr;
-
-    if (procImage)
+    currImage = isLoadingImage ? imageProcessor->GetProcessedGLImage() : nullptr;
+    if (currImage)
     {
-        procImage = imageProcessor->Process(procImage);
-
-        float aspect = procImage ? procImage->GetAspect() : 1.0f;
+        float aspect = currImage ? currImage->GetAspect() : 1.0f;
         auto regionSize = LibCore::Math::Vec2{ ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y };
         auto imageSize = LibCore::Math::Vec2{ regionSize.x, regionSize.x / aspect };
         if (imageSize.y > regionSize.y)
@@ -75,14 +49,14 @@ void UIPhoto::Render(float dt)
         {
             ImGui::SetCursorPos(imagePos);
             ImGui::Image(
-                procImage ? procImage->GetHandler() : 0,
+                currImage ? currImage->GetHandler() : 0,
                 ImVec2{ imageSize.x, imageSize.y },
                 ImVec2{ 0.0f + imageZoom + imageOffset.x, 0.0f + imageZoom + imageOffset.y },
                 ImVec2{ 1.0f - imageZoom + imageOffset.x, 1.0f - imageZoom + imageOffset.y },
                 ImVec4{ 1,1,1,1 },
                 ImVec4{ 0,0,0,0 });
         }
-        bool isImageHovered = ImGui::IsItemHovered();
+        const bool isImageHovered = ImGui::IsItemHovered();
         const ImVec2 imageBeg = ImGui::GetItemRectMin();
         const ImVec2 imageEnd = ImGui::GetItemRectMax();
         // image dragger
@@ -94,9 +68,8 @@ void UIPhoto::Render(float dt)
                 (ImGui::IsMouseHoveringCircle(dragBeg + ImVec2{ dragOffset, 0 }, DRAG_RADIUS) && ImGui::IsMouseClicked(ImGuiMouseButton_Left));
 
             if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && isImageDiffClicked)
-            {
-                dragOffset = std::clamp(ImGui::GetMousePos().x - dragBeg.x, 0.0f, imageSize.x);
-            }
+                dragOffset = ImGui::GetMousePos().x - dragBeg.x;
+            dragOffset = std::clamp(dragOffset, 0.0f, imageSize.x);
 
             ImGui::GetWindowDrawList()->AddLine(dragBeg, ImVec2{ imageEnd.x, dragBeg.y }, 0xffb0a0af, 2.0f);
 
@@ -135,10 +108,10 @@ void UIPhoto::Render(float dt)
         if (isImageHovered)
         {
             auto pixelLoc = ImVec2{
-                std::roundf(origCVImage->Width() * normCursorPos.x),
-                std::roundf(origCVImage->Height() * normCursorPos.y) };
+                std::roundf(imageProcessor->GetImageWidth() * normCursorPos.x),
+                std::roundf(imageProcessor->GetImageHeight() * normCursorPos.y) };
 
-            auto pixelColor = procImage->GetPixel((int)(procImage->GetWidth() * normCursorPos.x), (int)(procImage->GetHeight() * normCursorPos.y));
+            auto pixelColor = currImage->GetPixel((int)(currImage->GetWidth() * normCursorPos.x), (int)(currImage->GetHeight() * normCursorPos.y));
             ImGui::SetCursorPosX(imageBeg.x - ImGui::GetWindowPos().x);
 
             ImGui::Text("Cursor: (%d, %d), Color: (%.2f, %.2f, %.2f, %.2f)", (int)pixelLoc.x, (int)pixelLoc.y, pixelColor.x, pixelColor.y, pixelColor.z, pixelColor.w);
@@ -156,6 +129,7 @@ void UIPhoto::Render(float dt)
             true );
 
         {
+            auto origImage = imageProcessor->GetOriginalGLImage();
             ImGui::SetCursorPos(imagePos);
             ImGui::Image(
                 origImage ? origImage->GetHandler() : 0,
@@ -186,40 +160,4 @@ void UIPhoto::Render(float dt)
             14,
             5.f);
     }
-}
-
-bool UIPhoto::IsLoading() const
-{
-    return loadPhotoFuture.valid();
-}
-
-void UIPhoto::LoadPhoto(const char* imgPath)
-{
-    bool toReload = imagePath != imgPath;
-
-    imagePath = imgPath;
-    loadPhotoFuture = std::async(std::launch::async, [this, toReload]() {
-        origCVImage =  toReload ? LibCV::Image::Create(imagePath.c_str()) : origCVImage;
-        if (origCVImage->Width() > 1920 || origCVImage->Height() > 1080)
-        {
-            float reduce = 1.0f;
-            if (origCVImage->Width() > origCVImage->Height())
-            {
-                reduce = 1920.0f / origCVImage->Width();
-            }
-            else
-            {
-                reduce = 1080.0f / origCVImage->Height();
-            }
-
-            origCVImage = origCVImage->Resize(std::max(0.5f, reduce));
-        }
-
-        procCVImage = LibCV::ImageFX::AutoEnhance(origCVImage, imageProcessor->ImageFXFlags);
-     });
-}
-
-const std::string& UIPhoto::GetPhotoPath() const
-{
-    return imagePath;
 }

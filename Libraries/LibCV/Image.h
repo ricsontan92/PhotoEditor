@@ -19,6 +19,7 @@ namespace LibCV
 	{
 	public:
 		static std::shared_ptr<Image> Create(const std::filesystem::path& path);
+		std::shared_ptr<Image> Clone() const;
 		~Image();
 
 		void Show(const char* windowName = "default", float resize = 1.0f) const;

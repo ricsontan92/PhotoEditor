@@ -15,16 +15,10 @@ public:
         const std::shared_ptr<ImageProcessor>& imageProcessor);
     void Init();
     void Render(float dt);
-    bool IsLoading() const;
-    void LoadPhoto(const char* imgPath);
-    const std::string& GetPhotoPath() const;
-
-private:
-    std::future<void> loadPhotoFuture;
 
 private:
     std::shared_ptr<ImageProcessor> imageProcessor;
-
+    std::shared_ptr<LibGraphics::Texture> currImage;
 private:
     float imageZoom;
     std::string imagePath;
@@ -32,10 +26,4 @@ private:
 
     float dragOffset;
     bool isImageDiffClicked;
-
-private:
-    std::shared_ptr<LibCV::Image> origCVImage, procCVImage;
-
-private:
-    std::shared_ptr<LibGraphics::Texture> origImage, enhancedImage;
 };

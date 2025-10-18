@@ -272,101 +272,100 @@ void UIFilters::Render(float dt)
         {
             if (filtersMap.find(filterSelectName) != filtersMap.end())
             {
-                imageProcessor->ImageFilters.push_back({});
-                imageProcessor->ImageFilters.back().Active = true;
-                imageProcessor->ImageFilters.back().Name = filterSelectName;
-                imageProcessor->ImageFilters.back().Filter = filtersMap[filterSelectName]->Clone();
+                auto filter = imageProcessor->AddImageFilters(
+                    filterSelectName,
+                    filtersMap[filterSelectName]);
 
                 // set default value
                 for (auto& vFloat : shaderVars_Floats[filterSelectName])
-                    imageProcessor->ImageFilters.back().Filter->SetFloat(vFloat.first.c_str(), vFloat.second.DefaultValue);
+                    filter->Filter->SetFloat(vFloat.first.c_str(), vFloat.second.DefaultValue);
                 for (auto& vFloatVec2 : shaderVars_FloatVec2s[filterSelectName])
-                    imageProcessor->ImageFilters.back().Filter->SetVec2(vFloatVec2.first.c_str(), vFloatVec2.second.DefaultValue);
+                    filter->Filter->SetVec2(vFloatVec2.first.c_str(), vFloatVec2.second.DefaultValue);
             }
         }
 
         ImGui::Separator();
 
-
-        for (size_t i = 0; i < imageProcessor->ImageFilters.size(); ++i)
+        bool isFilterEdited = false;
+        const auto& filters = imageProcessor->GetImageFilters();
+        for (size_t i = 0; i < filters.size(); ++i)
         {
-            auto& currFilter = imageProcessor->ImageFilters[i];
-            std::string imguiIdx = "##FILTER_" + std::to_string((long long)&currFilter) + "_";
+            const std::string imguiIdx = "##FILTER_" + std::to_string(i) + "_";
 
-            ImGui::Checkbox((imguiIdx + "Active").c_str(), &currFilter.Active);
+            isFilterEdited = ImGui::Checkbox((imguiIdx + "Active").c_str(), &filters[i]->Active) || isFilterEdited;
             ImGui::SameLine();
             bool selRemoveFilter = true;
-            if (ImGui::CollapsingHeader((currFilter.Name + imguiIdx + "Details").c_str(), &selRemoveFilter))
+            if (ImGui::CollapsingHeader((filters[i]->Name + imguiIdx + "Details").c_str(), &selRemoveFilter))
             {
-                std::string shaderVarIdx = "##" + currFilter.Name + std::to_string((long long)&currFilter) + "_";
+                std::string shaderVarIdx = "##" + filters[i]->Name + std::to_string(i) + "_";
 
                 // for ints
-                for (auto& vInts : shaderVars_Ints[currFilter.Name])
+                for (auto& vInts : shaderVars_Ints[filters[i]->Name])
                 {
                     int currValue;
-                    if (currFilter.Filter->GetInt(vInts.first.c_str(), currValue))
+                    if (filters[i]->Filter->GetInt(vInts.first.c_str(), currValue))
                     {
-                        if (ImGui::DragInt((vInts.first + shaderVarIdx).c_str(), &currValue, 0, vInts.second.MinValue, vInts.second.MaxValue))
-                            currFilter.Filter->SetInt(vInts.first.c_str(), currValue);
+                        if (isFilterEdited = ImGui::DragInt((vInts.first + shaderVarIdx).c_str(), &currValue, 0, vInts.second.MinValue, vInts.second.MaxValue) || isFilterEdited)
+                            filters[i]->Filter->SetInt(vInts.first.c_str(), currValue);
                     }
                 }
 
                 // for floats
-                for (auto& vFloat : shaderVars_Floats[currFilter.Name])
+                for (auto& vFloat : shaderVars_Floats[filters[i]->Name])
                 {
                     float currValue;
-                    if (currFilter.Filter->GetFloat(vFloat.first.c_str(), currValue))
+                    if (filters[i]->Filter->GetFloat(vFloat.first.c_str(), currValue))
                     {
-                        if (ImGui::DragFloat((vFloat.first + shaderVarIdx).c_str(), &currValue, 0, vFloat.second.MinValue, vFloat.second.MaxValue))
-                            currFilter.Filter->SetFloat(vFloat.first.c_str(), currValue);
+                        if (isFilterEdited = ImGui::DragFloat((vFloat.first + shaderVarIdx).c_str(), &currValue, 0, vFloat.second.MinValue, vFloat.second.MaxValue) || isFilterEdited)
+                            filters[i]->Filter->SetFloat(vFloat.first.c_str(), currValue); 
                     }
                 }
 
                 // for floats vec2s
-                for (auto& vFloatVec2 : shaderVars_FloatVec2s[currFilter.Name])
+                for (auto& vFloatVec2 : shaderVars_FloatVec2s[filters[i]->Name])
                 {
                     LibCore::Math::Vec2 currValue;
-                    if (currFilter.Filter->GetVec2(vFloatVec2.first.c_str(), currValue))
+                    if (filters[i]->Filter->GetVec2(vFloatVec2.first.c_str(), currValue))
                     {
-                        if (ImGui::DragFloat2((vFloatVec2.first + shaderVarIdx).c_str(), &currValue.x, 0, vFloatVec2.second.MinValue, vFloatVec2.second.MaxValue))
-                            currFilter.Filter->SetVec2(vFloatVec2.first.c_str(), currValue);
+                        if (isFilterEdited = ImGui::DragFloat2((vFloatVec2.first + shaderVarIdx).c_str(), &currValue.x, 0, vFloatVec2.second.MinValue, vFloatVec2.second.MaxValue) || isFilterEdited)
+                            filters[i]->Filter->SetVec2(vFloatVec2.first.c_str(), currValue);
                     }
                 }
 
                 // for floats vec3s
-                for (auto& vFloatVec3 : shaderVars_FloatVec3s[currFilter.Name])
+                for (auto& vFloatVec3 : shaderVars_FloatVec3s[filters[i]->Name])
                 {
                     LibCore::Math::Vec3 currValue;
-                    if (currFilter.Filter->GetVec3(vFloatVec3.first.c_str(), currValue))
+                    if (filters[i]->Filter->GetVec3(vFloatVec3.first.c_str(), currValue))
                     {
                         if (vFloatVec3.second.IsColor)
                         {
-                            if (ImGui::ColorPicker3((vFloatVec3.first + shaderVarIdx).c_str(), &currValue.x))
-                                currFilter.Filter->SetVec3(vFloatVec3.first.c_str(), currValue);
+                            if (isFilterEdited = ImGui::ColorPicker3((vFloatVec3.first + shaderVarIdx).c_str(), &currValue.x) || isFilterEdited)
+                                filters[i]->Filter->SetVec3(vFloatVec3.first.c_str(), currValue);
                         }
                         else
                         {
-                            if (ImGui::DragFloat3((vFloatVec3.first + shaderVarIdx).c_str(), &currValue.x, 0, vFloatVec3.second.MinValue, vFloatVec3.second.MaxValue))
-                                currFilter.Filter->SetVec3(vFloatVec3.first.c_str(), currValue);
+                            if (isFilterEdited = ImGui::DragFloat3((vFloatVec3.first + shaderVarIdx).c_str(), &currValue.x, 0, vFloatVec3.second.MinValue, vFloatVec3.second.MaxValue) || isFilterEdited)
+                                filters[i]->Filter->SetVec3(vFloatVec3.first.c_str(), currValue);
                         }
                     }
                 }
 
                 // for floats vec4s
-                for (auto& vFloatVec4 : shaderVars_FloatVec4s[currFilter.Name])
+                for (auto& vFloatVec4 : shaderVars_FloatVec4s[filters[i]->Name])
                 {
                     LibCore::Math::Vec4 currValue;
-                    if (currFilter.Filter->GetVec4(vFloatVec4.first.c_str(), currValue))
+                    if (filters[i]->Filter->GetVec4(vFloatVec4.first.c_str(), currValue))
                     {
                         if (vFloatVec4.second.IsColor)
                         {
-                            if (ImGui::ColorPicker4((vFloatVec4.first + shaderVarIdx).c_str(), &currValue.x))
-                                currFilter.Filter->SetVec4(vFloatVec4.first.c_str(), currValue);
+                            if (isFilterEdited = ImGui::ColorPicker4((vFloatVec4.first + shaderVarIdx).c_str(), &currValue.x) || isFilterEdited)
+                                filters[i]->Filter->SetVec4(vFloatVec4.first.c_str(), currValue);
                         }
                         else
                         {
-                            if (ImGui::DragFloat4((vFloatVec4.first + shaderVarIdx).c_str(), &currValue.x, 0, vFloatVec4.second.MinValue, vFloatVec4.second.MaxValue))
-                                currFilter.Filter->SetVec4(vFloatVec4.first.c_str(), currValue);
+                            if (isFilterEdited = ImGui::DragFloat4((vFloatVec4.first + shaderVarIdx).c_str(), &currValue.x, 0, vFloatVec4.second.MinValue, vFloatVec4.second.MaxValue) || isFilterEdited)
+                                filters[i]->Filter->SetVec4(vFloatVec4.first.c_str(), currValue);
                         }
                     }
                 }
@@ -374,8 +373,11 @@ void UIFilters::Render(float dt)
 
             if (!selRemoveFilter)
             {
-                imageProcessor->ImageFilters.erase(imageProcessor->ImageFilters.begin() + i);
+                imageProcessor->RemoveImageFilters(filters[i]);
             }
+
+            if(isFilterEdited)
+                imageProcessor->SetImageFilters(filters);
         }
     }
     ImGui::EndChild();

@@ -20,10 +20,15 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 
+#include "LibCore/ThreadPool.h"
+#include "LibCore/EventSystem.h"
+
 struct PanelSharedData
 {
 	std::shared_ptr<LibGraphics::Texture> GLTexture;
 	std::shared_ptr<LibGraphics::Application> Application;
+	std::shared_ptr<LibCore::Event::EventSystem> EvtSystem;
+	std::shared_ptr<LibCore::Async::ThreadPool> ThreadPool;
 };
 
 class UIHeader

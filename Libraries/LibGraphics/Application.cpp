@@ -14,7 +14,17 @@ namespace LibGraphics
 	Application::Application(void * pWindow)
 		: window{ pWindow }
 	{
-		
+		glfwSetWindowUserPointer((GLFWwindow*)window, this);
+		glfwSetDropCallback((GLFWwindow*)window, [](GLFWwindow* window, int count, const char** paths){
+			auto pApplication = (Application*)glfwGetWindowUserPointer(window);
+			
+			std::vector<LibCore::Filesystem::Path> filePaths;
+			for (int i = 0; i < count; i++)
+				filePaths.emplace_back(LibCore::Filesystem::Path{ paths[i] });
+
+			for (auto& fnc : pApplication->dragdropCallbacks)
+				fnc(filePaths);
+		});
 	}
 
 	Application::~Application()
@@ -29,11 +39,18 @@ namespace LibGraphics
 		return window;
 	}
 
+	void Application::RegisterDragDropCallback(const std::function<DragDropFuncType>& fnc)
+	{
+		dragdropCallbacks.push_back(fnc);
+	}
+
 	void Application::Run(const std::function<bool(float fps)>& loopFunc) const
 	{
-		float fps = 1.0f / 60.0f;
-
 		glfwMakeContextCurrent((GLFWwindow*)window);
+
+		const double targetFPS = 60.0f;
+
+		float fps = 1.0f / static_cast<float>(targetFPS);
 		while (!glfwWindowShouldClose((GLFWwindow*)window))
 		{
 			auto timeBeg = std::chrono::high_resolution_clock::now();
@@ -60,7 +77,7 @@ namespace LibGraphics
 				glfwPollEvents();
 				glfwSwapBuffers((GLFWwindow*)window);
 			}
-			fps = fps * 0.9f + 0.1f * (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - timeBeg).count() / 1000.0f);
+			fps = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - timeBeg).count() / 1000.0f;
 		}
 	}
 }

@@ -34,6 +34,12 @@
     <ClCompile Include="UIPhoto.cpp">
       <Filter>PhotoEditor\Panels</Filter>
     </ClCompile>
+    <ClCompile Include="Events.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UIEnhance.cpp">
+      <Filter>PhotoEditor\Panels</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PhotoEditor.h">
@@ -52,6 +58,9 @@
       <Filter>PhotoEditor</Filter>
     </ClInclude>
     <ClInclude Include="UIPhoto.h">
+      <Filter>PhotoEditor\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="UIEnhance.h">
       <Filter>PhotoEditor\Panels</Filter>
     </ClInclude>
   </ItemGroup>

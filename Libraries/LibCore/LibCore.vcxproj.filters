@@ -11,6 +11,9 @@
     <Filter Include="Async">
       <UniqueIdentifier>{fcb56bd2-c579-4182-ac12-6b9e21662031}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Event">
+      <UniqueIdentifier>{00163291-c3c5-458f-99d3-e9c12ae6fc52}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vec2.h">
@@ -35,6 +38,12 @@
       <Filter>Filesystem</Filter>
     </ClInclude>
     <ClInclude Include="ThreadPool.h">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="EventSystem.h">
+      <Filter>Event</Filter>
+    </ClInclude>
+    <ClInclude Include="Future.h">
       <Filter>Async</Filter>
     </ClInclude>
   </ItemGroup>
