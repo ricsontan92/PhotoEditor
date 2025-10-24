@@ -163,8 +163,8 @@
     <ProjectReference Include="..\..\3rdParties\glfw\build\src\glfw.vcxproj">
       <Project>{22ca2f45-1306-38df-8ce8-7049d310ecce}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\3rdParties\soil\SOIL.vcxproj">
-      <Project>{0e209921-a8fc-4ef6-914e-cb580c6dd311}</Project>
+    <ProjectReference Include="..\..\3rdParties\SOIL2\build\soil2.vcxproj">
+      <Project>{b4c38b6f-751b-320c-9f4e-2c0aed4165c4}</Project>
     </ProjectReference>
     <ProjectReference Include="..\LibCore\LibCore.vcxproj">
       <Project>{2f1dafd3-7973-4bba-9a24-e25aea0fd298}</Project>

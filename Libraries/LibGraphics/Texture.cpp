@@ -1,7 +1,7 @@
 #include "Texture.h"
 #include "GL/glew.h"
-#include "soil/SOIL.h"
-#include "soil/image_helper.h"
+#include "soil2/src/SOIL2/SOIL2.h"
+#include "soil2/src/SOIL2/image_helper.h"
 
 #include <array>
 #include <filesystem>

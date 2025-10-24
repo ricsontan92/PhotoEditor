@@ -1,6 +1,6 @@
 #include "FrameBuffer.h"
 #include "GL/glew.h"
-#include "soil/SOIL.h"
+#include "soil2/src/SOIL2/SOIL2.h"
 
 #include <iostream>
 #include <filesystem>
@@ -223,9 +223,22 @@ namespace LibGraphics
 		BindTexture(0);
 		glGetTexImage(GL_TEXTURE_2D, 0, channels == 4 ? GL_RGBA : (channels == 1 ? GL_R : GL_RGB), GL_UNSIGNED_BYTE, pixels.data());
 
+		auto saveType = SOIL_SAVE_TYPE_QOI;
+
+		if (ext == ".bmp")
+			saveType = SOIL_SAVE_TYPE_BMP;
+		else if(ext == ".tga")
+			saveType = SOIL_SAVE_TYPE_TGA;
+		else if (ext == ".dds")
+			saveType = SOIL_SAVE_TYPE_DDS;
+		else if (ext == ".png")
+			saveType = SOIL_SAVE_TYPE_PNG;
+		else if (ext == ".jpg" || ext == ".jpeg")
+			saveType = SOIL_SAVE_TYPE_JPG;
+
 		return SOIL_save_image(
 			path.c_str(),
-			ext == ".bmp" ? SOIL_SAVE_TYPE_BMP : (ext == ".tga" ? SOIL_SAVE_TYPE_TGA : SOIL_SAVE_TYPE_DDS),
+			saveType,
 			GetWidth(),
 			GetHeight(),
 			channels,
