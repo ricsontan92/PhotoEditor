@@ -1,4 +1,4 @@
-#include "ImageFX.h"
+﻿#include "ImageFX.h"
 #include "opencv2/core.hpp"
 #include "opencv2/photo.hpp"
 #include "opencv2/highgui.hpp"
@@ -46,6 +46,113 @@ namespace LibCV
 
 		cv::Mat result;
 		((cv::Mat*)image->cvMatPtr)->convertTo(*(cv::Mat*)results->cvMatPtr, -1, alpha, beta);
+
+		return results;
+	}
+
+	std::shared_ptr<Image> ImageFX::AdjustSharpen(const std::shared_ptr<Image>& image)
+	{
+		cv::Mat gray;
+		cv::cvtColor(*(cv::Mat*)image->cvMatPtr, gray, cv::COLOR_BGR2GRAY);
+
+		// Compute Laplacian variance (measure of sharpness)
+		cv::Mat lap;
+		cv::Laplacian(gray, lap, CV_64F);
+		cv::Scalar meanLap, stdLap;
+		cv::meanStdDev(lap, meanLap, stdLap);
+		double variance = stdLap[0] * stdLap[0];
+
+		// Map variance → sharpening strength automatically
+		// Lower variance → stronger sharpening
+		double strength;
+		if (variance < 50.0)
+			strength = 2.0; // very blurry
+		else if (variance < 150.0)
+			strength = 1.0 + (150.0 - variance) / 100.0; // mild blur
+		else if (variance < 300.0)
+			strength = 0.5;
+		else
+			strength = 0.0; // already sharp, skip
+
+		// Apply sharpening only if needed
+		if (strength > 0.05)
+		{
+			std::shared_ptr<Image> results = std::shared_ptr<Image>{ new Image{} };
+			results->cvMatPtr = new cv::Mat{};
+
+			cv::Mat blurred;
+			cv::GaussianBlur(*(cv::Mat*)image->cvMatPtr, blurred, cv::Size(0, 0), 2.0);
+			cv::addWeighted(*(cv::Mat*)image->cvMatPtr, 1.0 + strength, blurred, -strength, 0, *(cv::Mat*)results->cvMatPtr);
+			return results;
+		}
+
+		// Return unchanged if already sharp
+		return image->Clone();
+	}
+
+	std::shared_ptr<Image> ImageFX::AdjustHSL(const std::shared_ptr<Image>& image)
+	{
+		cv::Mat hls;
+		cv::cvtColor(*(cv::Mat*)image->cvMatPtr, hls, cv::COLOR_BGR2HLS);
+
+		std::vector<cv::Mat> channels;
+		cv::split(hls, channels);
+
+		cv::Mat H = channels[0]; // Hue
+		cv::Mat L = channels[1]; // Lightness
+		cv::Mat S = channels[2]; // Saturation
+
+		// --- Compute mean lightness and saturation ---
+		cv::Scalar meanL = cv::mean(L);
+		cv::Scalar meanS = cv::mean(S);
+
+		double meanLight = meanL[0];
+		double meanSat = meanS[0];
+
+		// --- Auto Lightness Adjustment ---
+		// Target ~128 (midpoint)
+		double lightScale = 1.0;
+		if (meanLight < 100)
+			lightScale = 1.0 + (128 - meanLight) / 256.0;
+		else if (meanLight > 160)
+			lightScale = 1.0 - (meanLight - 128) / 256.0;
+
+		L.convertTo(L, CV_32F);
+		L = cv::min(cv::max(L * lightScale, 0.0f), 255.0f);
+		L.convertTo(L, CV_8U);
+
+		// --- Auto Saturation Adjustment ---
+		// Boost low-saturation images, dampen oversaturated ones
+		double satScale = 1.0;
+		if (meanSat < 90)
+			satScale = 1.3;
+		else if (meanSat < 128)
+			satScale = 1.1;
+		else if (meanSat > 200)
+			satScale = 0.8;
+
+		S.convertTo(S, CV_32F);
+		S = cv::min(cv::max(S * satScale, 0.0f), 255.0f);
+		S.convertTo(S, CV_8U);
+
+		// --- Optional: Small Hue correction (neutralize color cast) ---
+		// Compute average hue bias toward warm/cool tones
+		cv::Scalar meanHue = cv::mean(H);
+		double hueShift = 0.0;
+		if (meanHue[0] < 30 || meanHue[0] > 150) hueShift = 2.0;   // cool → slightly warm
+		else if (meanHue[0] > 90 && meanHue[0] < 150) hueShift = -2.0; // warm → slightly cool
+
+		H.convertTo(H, CV_32F);
+		H += hueShift;
+		H = cv::min(cv::max(H, 0.0f), 180.0f);
+		H.convertTo(H, CV_8U);
+
+		// --- Merge and convert back ---
+		cv::merge(std::vector< cv::Mat>{ H, L, S }, hls);
+		
+		std::shared_ptr<Image> results = std::shared_ptr<Image>{ new Image{} };
+		results->cvMatPtr = new cv::Mat{};
+		cv::cvtColor(hls, *(cv::Mat*)results->cvMatPtr, cv::COLOR_HLS2BGR);
 
 		return results;
 	}
@@ -192,6 +299,11 @@ namespace LibCV
 		results = flags & AUTO_DETAIL_ENHANCE ? ApplyEnhanceDetails(results) : results;
 		
 		results = flags & AUTO_DENOISE ? ApplyDenoise(results) : results;
+
+		results = flags & AUTO_SHARPEN ? AdjustSharpen(results) : results;
+
+		results = flags & AUTO_HSL ? AdjustHSL(results) : results;
+
 
 		return results;
 	}

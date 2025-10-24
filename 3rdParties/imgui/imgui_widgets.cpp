@@ -1113,6 +1113,59 @@ bool ImGui::ImageButton(const char* str_id, ImTextureID user_texture_id, const I
     return ImageButtonEx(window->GetID(str_id), user_texture_id, image_size, uv0, uv1, bg_col, tint_col);
 }
 
+bool ImGui::ImageButton(const char* str_id, ImTextureID user_texture_id, const ImVec2& image_size, float aspect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col)
+{
+    ImGuiContext& g = *GImGui;
+    ImGuiWindow* window = g.CurrentWindow;
+    if (window->SkipItems)
+        return false;
+
+    ImGuiID id = window->GetID(str_id);
+    const ImVec2 padding = g.Style.FramePadding;
+    const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + image_size + padding * 2.0f);
+    ItemSize(bb);
+    if (!ItemAdd(bb, id))
+        return false;
+
+    bool hovered, held;
+    bool pressed = ButtonBehavior(bb, id, &hovered, &held, 0);
+
+    // Render
+    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+    RenderNavCursor(bb, id);
+    RenderFrame(bb.Min, bb.Max, col, true, ImClamp((float)ImMin(padding.x, padding.y), 0.0f, g.Style.FrameRounding));
+    if (bg_col.w > 0.0f)
+        window->DrawList->AddRectFilled(bb.Min + padding, bb.Max - padding, GetColorU32(bg_col));
+
+    auto imgMin = bb.Min + padding;
+    auto imgMax = bb.Max - padding;
+    auto imgSize = imgMax - imgMin;
+
+    ImVec2 spacing{ 0, 0 };
+    if (aspect > 1.0f)
+    {
+        const auto newSizeY = imgSize.x / aspect;
+        spacing.y = (imgSize.y - newSizeY) * 0.5f;
+        imgSize.y = newSizeY;
+    }
+    else
+    {
+        const auto newSizeX = imgSize.y * aspect;
+        spacing.x = (imgSize.x - newSizeX) * 0.5f;
+        imgSize.x = newSizeX;
+    }
+
+    window->DrawList->AddImage(
+        user_texture_id,
+        imgMin + spacing,
+        imgMin + imgSize + spacing,
+        uv0,
+        uv1,
+        GetColorU32(tint_col));
+
+    return pressed;
+}
+
 #ifndef IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 // Legacy API obsoleted in 1.89. Two differences with new ImageButton()
 // - old ImageButton() used ImTextureId as item id (created issue with multiple buttons with same image, transient texture id values, opaque computation of ID)

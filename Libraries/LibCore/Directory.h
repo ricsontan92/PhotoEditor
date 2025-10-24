@@ -12,6 +12,7 @@ namespace LibCore
 		{
 		public:
 			Directory();
+			Directory(const Path& path);
 			Directory(const char* path);
 			bool Exists() const;
 			std::vector<File> ListFiles(bool recursive) const;

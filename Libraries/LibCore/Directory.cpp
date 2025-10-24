@@ -10,6 +10,12 @@ namespace LibCore
 
 		}
 
+		Directory::Directory(const Path& path)
+			: Directory{ path.String().c_str() }
+		{
+
+		}
+
 		Directory::Directory(const char* path)
 			: path{ path }
 		{

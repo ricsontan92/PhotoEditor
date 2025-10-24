@@ -17,6 +17,21 @@ namespace LibCore
 
 		}
 
+		std::string File::Extension() const
+		{
+			return path.extension().string();
+		}
+
+		std::string File::FileName() const
+		{
+			return path.filename().string();
+		}
+
+		Path File::FilePath() const
+		{
+			return Path{ path.string().c_str() };
+		}
+
 		bool File::Exists() const
 		{
 			return std::filesystem::exists(path);

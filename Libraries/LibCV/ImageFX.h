@@ -9,11 +9,15 @@ namespace LibCV
 		const static unsigned AUTO_BRIGHTNESS_CONTRAST	= 1 << 0;
 		const static unsigned AUTO_GAMMA				= 1 << 1;
 		const static unsigned AUTO_COLOR_TEMP			= 1 << 2;
-		const static unsigned AUTO_CLAHE				= 1 << 3;
-		const static unsigned AUTO_DETAIL_ENHANCE		= 1 << 4;
-		const static unsigned AUTO_DENOISE				= 1 << 5;
+		const static unsigned AUTO_SHARPEN				= 1 << 3;
+		const static unsigned AUTO_HSL					= 1 << 4;
+		const static unsigned AUTO_CLAHE				= 1 << 5;
+		const static unsigned AUTO_DETAIL_ENHANCE		= 1 << 6;
+		const static unsigned AUTO_DENOISE				= 1 << 7;
 
 		static std::shared_ptr<Image> AdjustBrightnessContrast(const std::shared_ptr<Image>& image, double clipHistPercent);
+		static std::shared_ptr<Image> AdjustSharpen(const std::shared_ptr<Image>& image);
+		static std::shared_ptr<Image> AdjustHSL(const std::shared_ptr<Image>& image);
 		static std::shared_ptr<Image> AdjustGamma(const std::shared_ptr<Image>& image, double gamma);
 		static std::shared_ptr<Image> AdjustColorTemperature(const std::shared_ptr<Image>& image, int kelvinShift);
 		static std::shared_ptr<Image> ApplyCLAHE(const std::shared_ptr<Image>& image);

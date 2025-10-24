@@ -9,6 +9,7 @@
 #include <atomic>
 
 #include "Future.h"
+#include "CancelToken.h"
 
 namespace LibCore
 {
@@ -69,6 +70,41 @@ namespace LibCore
                         promise->set_exception(std::current_exception());
                     }
                 };
+
+                Submit(std::move(boundTask));
+                return future;
+            }
+
+            template<typename F, typename... Args>
+            auto Enqueue(std::shared_ptr<CancelToken> token, F&& f, Args&&... args)
+                -> Future<std::invoke_result_t<F, Args...>>
+            {
+                using ReturnType = std::invoke_result_t<F, Args...>;
+
+                auto promise = std::make_shared<std::promise<ReturnType>>();
+                auto future = Future<ReturnType>(std::move(promise->get_future()));
+
+                // Wrap the task to respect cancellation
+                auto boundTask = [promise, token, func = std::forward<F>(f),
+                    ... args = std::forward<Args>(args)]() mutable
+                    {
+                        try {
+                            if (token->IsCancelled()) {
+                                throw std::runtime_error("Task cancelled");
+                            }
+
+                            if constexpr (std::is_void_v<ReturnType>) {
+                                func(std::forward<Args>(args)...);
+                                promise->set_value();
+                            }
+                            else {
+                                promise->set_value(func(std::forward<Args>(args)...));
+                            }
+                        }
+                        catch (...) {
+                            promise->set_exception(std::current_exception());
+                        }
+                    };
 
                 Submit(std::move(boundTask));
                 return future;

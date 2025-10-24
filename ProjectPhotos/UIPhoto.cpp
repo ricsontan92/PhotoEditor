@@ -26,7 +26,7 @@ void UIPhoto::Render(float dt)
     if (isImageDiffClicked && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         isImageDiffClicked = false;
 
-    const bool isLoadingImage = imageProcessor->TestLoadImageCompleted();
+    const bool isLoadingImage = imageProcessor->IsLoadImageCompleted();
 
     // fit to content size
     currImage = isLoadingImage ? imageProcessor->GetProcessedGLImage() : nullptr;
@@ -61,7 +61,7 @@ void UIPhoto::Render(float dt)
         const ImVec2 imageEnd = ImGui::GetItemRectMax();
         // image dragger
         {
-            const float DRAG_RADIUS = 6.0f;
+            const float DRAG_RADIUS = 8.0f;
             const ImVec2 dragBeg = imageBeg - ImVec2{ 0.0f, DRAG_RADIUS + 2.0f };
 
             isImageDiffClicked = isImageDiffClicked || 

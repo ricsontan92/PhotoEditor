@@ -38,6 +38,7 @@ public:
 		: imageFXFlags{
 			LibCV::ImageFX::AUTO_BRIGHTNESS_CONTRAST |
 			LibCV::ImageFX::AUTO_GAMMA |
+			LibCV::ImageFX::AUTO_HSL |
 			LibCV::ImageFX::AUTO_COLOR_TEMP /* |
 			LibCV::ImageFX::AUTO_CLAHE |
 			LibCV::ImageFX::AUTO_DETAIL_ENHANCE |
@@ -51,7 +52,8 @@ public:
 		, gammaFilter{ nullptr }
 		, procCVImage{ nullptr }
 		, origGLImage{ nullptr }
-		, procGLImages{ nullptr, nullptr }
+		, procGLImagesPre{ nullptr }
+		, procGLImagesPost{ nullptr }
 	{
 		brightnessFilter	= LibGraphics::TextureFilter::CreateFromShader(LibGraphics::BRIGHTNESS_SHADER);
 		contrastFilter		= LibGraphics::TextureFilter::CreateFromShader(LibGraphics::CONTRAST_SHADER);
@@ -61,8 +63,9 @@ public:
 		gammaFilter			= LibGraphics::TextureFilter::CreateFromShader(LibGraphics::GAMMA_SHADER);
 	}
 
+	void Update();
 	bool LoadImage(const LibCore::Filesystem::Path& path);
-	bool TestLoadImageCompleted();
+	bool IsLoadImageCompleted();
 
 	const std::shared_ptr<LibGraphics::Texture>& GetProcessedGLImage() const;
 	const std::shared_ptr<LibGraphics::Texture>& GetOriginalGLImage() const;
@@ -104,5 +107,5 @@ private:
 	LibCore::Async::Future<void> loadImageFuture;
 
 	std::shared_ptr<LibCV::Image> origCVImage, procCVImage;
-	std::shared_ptr<LibGraphics::Texture> origGLImage, procGLImages[2];
+	std::shared_ptr<LibGraphics::Texture> origGLImage, procGLImagesPre, procGLImagesPost;
 };

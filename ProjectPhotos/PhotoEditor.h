@@ -4,6 +4,7 @@
 #include "UIFilters.h"
 #include "UIEnhance.h"
 #include "UISettings.h"
+#include "UIThumbnails.h"
 
 #include <string>
 #include <future>
@@ -21,4 +22,5 @@ private:
 	std::shared_ptr<UIFilters> panelFilters;
 	std::shared_ptr<UIEnhance> panelEnhance;
 	std::shared_ptr<UISettings> panelSettings;
+	std::shared_ptr<UIThumbnails> panelThumbnails;
 };

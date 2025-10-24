@@ -5,6 +5,7 @@
 #include <filesystem>
 
 #include "LibCore/Vec4.h"
+#include "LibCore/File.h"
 
 namespace LibCV
 {
@@ -18,7 +19,9 @@ namespace LibCV
 	class Image
 	{
 	public:
+		static std::shared_ptr<Image> Create(const LibCore::Filesystem::File& path);
 		static std::shared_ptr<Image> Create(const std::filesystem::path& path);
+		static std::shared_ptr<Image> Create(const char* path);
 		std::shared_ptr<Image> Clone() const;
 		~Image();
 

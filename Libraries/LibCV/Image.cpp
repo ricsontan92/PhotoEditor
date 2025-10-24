@@ -6,11 +6,21 @@
 
 namespace LibCV
 {
-	std::shared_ptr<Image> Image::Create(const std::filesystem::path& path)
+	std::shared_ptr<Image> Image::Create(const LibCore::Filesystem::File& path)
 	{
 		std::shared_ptr<Image> results = std::shared_ptr<Image>{ new Image{} };
-		results->cvMatPtr = new cv::Mat{ cv::imread(path.string()) };
+		results->cvMatPtr = new cv::Mat{ cv::imread(path.FilePath().String()) };
 		return results;
+	}
+
+	std::shared_ptr<Image> Image::Create(const std::filesystem::path& path)
+	{
+		return Create(LibCore::Filesystem::File{ path.string().c_str()});
+	}
+
+	std::shared_ptr<Image> Image::Create(const char* path)
+	{
+		return Create(LibCore::Filesystem::File{ path });
 	}
 
 	std::shared_ptr<Image> Image::Clone() const

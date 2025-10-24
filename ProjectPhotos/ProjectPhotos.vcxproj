@@ -143,6 +143,7 @@
     <ClCompile Include="UIFilters.cpp" />
     <ClCompile Include="UIPhoto.cpp" />
     <ClCompile Include="UISettings.cpp" />
+    <ClCompile Include="UIThumbnails.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\3rdParties\imgui\imgui.vcxproj">
@@ -166,6 +167,7 @@
     <ClInclude Include="UIFilters.h" />
     <ClInclude Include="UIPhoto.h" />
     <ClInclude Include="UISettings.h" />
+    <ClInclude Include="UIThumbnails.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

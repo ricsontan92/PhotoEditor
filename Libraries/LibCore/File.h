@@ -13,6 +13,9 @@ namespace LibCore
 			File();
 			File(const char* path);
 
+			std::string Extension() const;
+			std::string FileName() const;
+			Path FilePath() const;
 			bool Exists() const;
 			size_t Size() const;
 			bool Remove() const;

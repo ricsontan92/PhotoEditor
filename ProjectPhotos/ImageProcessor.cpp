@@ -11,34 +11,22 @@ void ImageProcessor::ProcessGLChanges()
 	if (procCVImage)
 	{
 		// apply settings
-		procGLImages[1] = brightnessFilter->Apply(procGLImages[0]);
-		procGLImages[1] = contrastFilter->Apply(procGLImages[1]);
-		procGLImages[1] = sharpnessFilter->Apply(procGLImages[1]);
-		procGLImages[1] = hslFilter->Apply(procGLImages[1]);
-		procGLImages[1] = temperatureFilter->Apply(procGLImages[1]);
-		procGLImages[1] = gammaFilter->Apply(procGLImages[1]);
+		procGLImagesPost = procGLImagesPre;
+
+		procGLImagesPost = brightnessFilter->Apply(procGLImagesPost);
+		procGLImagesPost = contrastFilter->Apply(procGLImagesPost);
+		procGLImagesPost = sharpnessFilter->Apply(procGLImagesPost);
+		procGLImagesPost = hslFilter->Apply(procGLImagesPost);
+		procGLImagesPost = temperatureFilter->Apply(procGLImagesPost);
+		procGLImagesPost = gammaFilter->Apply(procGLImagesPost);
 
 		// apply filters
 		for (auto& filter : imageFilters)
-			procGLImages[1] = std::move(filter->Active ? filter->Filter->Apply(procGLImages[1]) : procGLImages[1]);
+			procGLImagesPost = std::move(filter->Active ? filter->Filter->Apply(procGLImagesPost) : procGLImagesPost);
 	}
 }
 
-bool ImageProcessor::LoadImage(const LibCore::Filesystem::Path& path)
-{
-	if (path.Exists())
-	{
-		loadImageFuture = LibCore::Async::Run([this, path]() {
-			origCVImage = LibCV::Image::Create(path.String().c_str());
-			procCVImage = LibCV::ImageFX::AutoEnhance(IMAGE_REDUCER(origCVImage), imageFXFlags);
-		});
-
-		return true;
-	}
-	return false;
-}
-
-bool ImageProcessor::TestLoadImageCompleted()
+void ImageProcessor::Update()
 {
 	if (loadImageFuture.IsReady())
 	{
@@ -46,7 +34,7 @@ bool ImageProcessor::TestLoadImageCompleted()
 
 		const auto imageData = procCVImage->GetImageData();
 
-		procGLImages[0] = LibGraphics::Texture::CreateFromData(
+		procGLImagesPre = LibGraphics::Texture::CreateFromData(
 			imageData.Pixels,
 			imageData.ImageWidth,
 			imageData.ImageHeight,
@@ -63,13 +51,31 @@ bool ImageProcessor::TestLoadImageCompleted()
 		// convert to GPU for enhanced by CV image
 		ProcessGLChanges();
 	}
+}
 
+bool ImageProcessor::LoadImage(const LibCore::Filesystem::Path& path)
+{
+	if (path.Exists())
+	{
+		origGLImage = procGLImagesPre = procGLImagesPost = nullptr;
+		loadImageFuture = LibCore::Async::Run([this, path]() {
+			origCVImage = LibCV::Image::Create(path.String().c_str());
+			procCVImage = LibCV::ImageFX::AutoEnhance(IMAGE_REDUCER(origCVImage), imageFXFlags);
+		});
+
+		return true;
+	}
+	return false;
+}
+
+bool ImageProcessor::IsLoadImageCompleted()
+{
 	return !loadImageFuture.Valid() || GetProcessedGLImage() != nullptr;
 }
 
 const std::shared_ptr<LibGraphics::Texture>& ImageProcessor::GetProcessedGLImage() const
 {
-	return procGLImages[1];
+	return procGLImagesPost;
 }
 
 const std::shared_ptr<LibGraphics::Texture>& ImageProcessor::GetOriginalGLImage() const
@@ -225,7 +231,7 @@ void ImageProcessor::SetFXFlags(unsigned flags)
 
 	if (isDiff)
 	{
-		procGLImages[0] = procGLImages[1] = nullptr;
+		origGLImage = procGLImagesPre = procGLImagesPost = nullptr;
 		loadImageFuture = LibCore::Async::Run([this, flags]() {
 			procCVImage = LibCV::ImageFX::AutoEnhance(IMAGE_REDUCER(origCVImage), flags);
 		});
