@@ -17,7 +17,6 @@
 static const int IMGUI_OVERLAY_FLAGS
     = ImGuiWindowFlags_AlwaysAutoResize
     | ImGuiWindowFlags_NoSavedSettings
-    | ImGuiWindowFlags_NoFocusOnAppearing
     | ImGuiWindowFlags_NoTitleBar
     | ImGuiWindowFlags_NoNav
     | ImGuiWindowFlags_NoScrollbar
@@ -128,9 +127,9 @@ int main()
                 {
                     ImVec2 screenRes = ImGui::GetIO().DisplaySize;
                     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.75f));
-                    ImGui::SetNextWindowPos(ImVec2());
-                    ImGui::SetNextWindowSize(ImVec2(screenRes.x, screenRes.y));
-                    if (ImGui::Begin("##APPLICATION_OVERLAY", nullptr, IMGUI_OVERLAY_FLAGS))
+                    ImGui::SetNextWindowPos(ImVec2{ 0, 0 }, ImGuiCond_Always);
+                    ImGui::SetNextWindowSize(ImVec2(screenRes.x, screenRes.y), ImGuiCond_Always);
+                    if (ImGui::Begin("##APPLICATION_OVERLAY", &overlayOpen, IMGUI_OVERLAY_FLAGS))
                     {
                         if (ImGui::IsWindowFocused())
                             ImGui::SetNextWindowFocus();

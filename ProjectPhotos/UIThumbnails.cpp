@@ -228,6 +228,7 @@ bool UIThumbnails::ShowImageToEdit()
 		| ImGuiWindowFlags_NoDecoration
 		| ImGuiWindowFlags_NoSavedSettings;
 
+	bool openPopup = true;
 	const ImVec2 winSize = ImGui::GetIO().DisplaySize * 0.80f;
 
 	ImGui::SetNextWindowSize(winSize);
@@ -235,7 +236,7 @@ bool UIThumbnails::ShowImageToEdit()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 5.f));
 	if (ImGui::Begin("##IMAGES_EDIT_WINDOW", nullptr, IMAGE_EDIT_WINDOW_FLAGS))
 	{
-		ImGui::BeginChild("##IMAGES_EDIT_CHILD", ImVec2{ 0, 0 }, ImGuiChildFlags_Border);
+		ImGui::BeginChild("##IMAGES_EDIT_CHILD", ImVec2{ 0, -30.0f }, ImGuiChildFlags_Border);
 		{
 			const float extraSizes = ImGui::GetStyle().ItemSpacing.x + ImGui::GetStyle().ScrollbarSize;
 			const float imageSize = (ImGui::GetContentRegionAvail().x - extraSizes) / 5.0f;
@@ -264,28 +265,6 @@ bool UIThumbnails::ShowImageToEdit()
 						ImVec2(1.0f, 1.0f),
 						ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f },
 						ImVec4{ 0.0f, 0.0f, 0.0f, 1.0f});
-
-					// check if double clicked
-					if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-					{
-						// 2nd click
-						if (clickedThumbnail == thumbnail.second)
-						{
-							auto timeElapsedSecs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - currClickedTime).count() / 1000.0f;
-							if (timeElapsedSecs < ImGui::GetIO().MouseDoubleClickTime)
-							{
-								clickedThumbnail = nullptr;
-								imageProcessor->LoadImage(LibCore::Filesystem::Path{ thumbnail.first.c_str() });
-							}
-						}
-						else
-						{
-							// 1st click
-							clickedThumbnail = thumbnail.second;
-						}
-
-						currClickedTime = std::chrono::high_resolution_clock::now();
-					}
 
 					float textWidth = ImGui::CalcTextSize(filename.c_str()).x;
 					if (textWidth > imageSize)
@@ -334,12 +313,25 @@ bool UIThumbnails::ShowImageToEdit()
 			ImGui::PopStyleVar();
 		}
 		ImGui::EndChild();
+
+		const float btnSize = ImGui::GetContentRegionAvail().x * 0.5f;
+		if (ImGui::Button("Apply##APPLY_IMAGES_EDIT", ImVec2{ btnSize , 0 }))
+		{
+
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("Cancel##CANCEL_IMAGES_EDIT", ImVec2{ btnSize , 0 }))
+		{
+			openPopup = false;
+		}
 	}
 	ImGui::End();
 
 	ImGui::PopStyleVar();
 
-	return true;
+	return openPopup;
 }
 
 bool UIThumbnails::IsAcceptedImageFormat(const std::string& ext) const
