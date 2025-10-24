@@ -1074,6 +1074,53 @@ void ImGui::Image(ImTextureID user_texture_id, const ImVec2& image_size, const I
     window->DrawList->AddImage(user_texture_id, bb.Min + padding, bb.Max - padding, uv0, uv1, GetColorU32(tint_col));
 }
 
+void ImGui::Image(ImTextureID user_texture_id, const ImVec2& image_size, float aspect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+{
+    ImGuiWindow* window = GetCurrentWindow();
+    if (window->SkipItems)
+        return;
+
+    const float border_size = (border_col.w > 0.0f) ? 1.0f : 0.0f;
+    const ImVec2 padding(border_size, border_size);
+    const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + image_size + padding * 2.0f);
+    ItemSize(bb);
+    if (!ItemAdd(bb, 0))
+        return;
+
+    // Render
+    if (border_size > 0.0f)
+    {
+        window->DrawList->AddRectFilled(bb.Min, bb.Max, GetColorU32(ImVec4{ 0, 0, 0, 1 }), 0.0f, ImDrawFlags_None);
+        window->DrawList->AddRect(bb.Min, bb.Max, GetColorU32(border_col), 0.0f, ImDrawFlags_None, border_size);
+    }
+
+    auto imgMin = bb.Min + padding;
+    auto imgMax = bb.Max - padding;
+    auto imgSize = imgMax - imgMin;
+
+    ImVec2 spacing{ 0, 0 };
+    if (aspect > 1.0f)
+    {
+        const auto newSizeY = imgSize.x / aspect;
+        spacing.y = (imgSize.y - newSizeY) * 0.5f;
+        imgSize.y = newSizeY;
+    }
+    else
+    {
+        const auto newSizeX = imgSize.y * aspect;
+        spacing.x = (imgSize.x - newSizeX) * 0.5f;
+        imgSize.x = newSizeX;
+    }
+
+    window->DrawList->AddImage(
+        user_texture_id,
+        imgMin + spacing,
+        imgMin + imgSize + spacing,
+        uv0,
+        uv1,
+        GetColorU32(tint_col));
+}
+
 bool ImGui::ImageButtonEx(ImGuiID id, ImTextureID texture_id, const ImVec2& image_size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col, ImGuiButtonFlags flags)
 {
     ImGuiContext& g = *GImGui;

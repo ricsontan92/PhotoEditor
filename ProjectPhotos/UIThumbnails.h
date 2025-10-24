@@ -20,11 +20,13 @@ public:
 private:
     void Clear();
     void LoadImages();
+    bool ShowImageToEdit();
     bool IsAcceptedImageFormat(const std::string& ext) const;
 
 private:
     struct Thumbnail
     {
+        bool ToEdit;
         std::string filename;
         LibCore::Async::Future<LibCV::ImageData> loadFuture;
         std::shared_ptr<LibCore::Async::CancelToken> cancelToken;

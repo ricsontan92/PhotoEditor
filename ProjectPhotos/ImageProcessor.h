@@ -38,8 +38,8 @@ public:
 		: imageFXFlags{
 			LibCV::ImageFX::AUTO_BRIGHTNESS_CONTRAST |
 			LibCV::ImageFX::AUTO_GAMMA |
-			LibCV::ImageFX::AUTO_HSL |
 			LibCV::ImageFX::AUTO_COLOR_TEMP /* |
+			LibCV::ImageFX::AUTO_HSL |
 			LibCV::ImageFX::AUTO_CLAHE |
 			LibCV::ImageFX::AUTO_DETAIL_ENHANCE |
 			LibCV::ImageFX::AUTO_DENOISE*/ }

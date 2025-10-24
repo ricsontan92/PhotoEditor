@@ -1,4 +1,5 @@
 #include "PhotoEditor.h"
+#include "Events.h"
 
 #include "LibCV/Image.h"
 #include "LibCV/ImageFX.h"
@@ -66,16 +67,11 @@ void PhotoEditor::Render(float dt)
                     }
                     ImGui::EndChild();
 
-                    ImGui::BeginChild("##__RIGHT_TABS_ENHANCE__", ImVec2{ 0, -30.0f }, ImGuiChildFlags_Border);
+                    ImGui::BeginChild("##__RIGHT_TABS_ENHANCE__", ImVec2{ 0, 0.0f }, ImGuiChildFlags_Border);
                     {
                         panelEnhance->Render(dt);
                     }
                     ImGui::EndChild();
-
-                    if (ImGui::Button("Apply To Images##PHOTOEDITOR_APPLY_IMAGES", ImVec2{ ImGui::GetContentRegionAvail().x, 0 }))
-                    {
-
-                    }
                 }
                 ImGui::EndDisabled();
 

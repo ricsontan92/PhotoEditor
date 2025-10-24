@@ -43,6 +43,7 @@ void UIThumbnails::Init()
 			if (thumbnails.find(filename) == thumbnails.end())
 			{
 				thumbnails[filename] = std::make_shared<Thumbnail>();
+				thumbnails[filename]->ToEdit = true;
 				thumbnails[filename]->filename = file.FileName();
 				thumbnails[filename]->cancelToken = std::make_shared<LibCore::Async::CancelToken>();
 				thumbnails[filename]->loadFuture = loadImagePool.Enqueue(thumbnails[filename]->cancelToken, [file]() {
@@ -80,7 +81,7 @@ void UIThumbnails::Render(float dt)
 	ImGui::SliderFloat("##THUMBNAIL_SCALE_SLIDER", &thumbnailScale, 0.25f, 1.0f, "");
 	ImGui::PopItemWidth();
 
-	ImGui::BeginChild("##IMAGE_THUMBNAIL_CHILD");
+	ImGui::BeginChild("##IMAGE_THUMBNAIL_CHILD", ImVec2{0, -30.0f}, ImGuiChildFlags_Border);
 	{
 		const float extraSizes = ImGui::GetStyle().ItemSpacing.x + ImGui::GetStyle().ScrollbarSize;
 		const float imageSize = ImGui::GetContentRegionAvail().x * thumbnailScale - extraSizes;
@@ -165,6 +166,13 @@ void UIThumbnails::Render(float dt)
 		ImGui::PopStyleVar();
 	}
 	ImGui::EndChild();
+
+	if (ImGui::Button("Apply To Images##PHOTOEDITOR_APPLY_IMAGES", ImVec2{ ImGui::GetContentRegionAvail().x, 0 }))
+	{
+		UISharedData->EvtSystem->Emit(Event::OverlayPopup{ [this]() {
+			return ShowImageToEdit();
+		} });
+	}
 }
 
 void UIThumbnails::Clear()
@@ -211,6 +219,127 @@ void UIThumbnails::LoadImages()
 			std::cout << "Load image failed: " << e.what() << std::endl;
 		}
 	}
+}
+
+bool UIThumbnails::ShowImageToEdit()
+{
+	static const auto IMAGE_EDIT_WINDOW_FLAGS
+		= ImGuiWindowFlags_NoCollapse
+		| ImGuiWindowFlags_NoDecoration
+		| ImGuiWindowFlags_NoSavedSettings;
+
+	const ImVec2 winSize = ImGui::GetIO().DisplaySize * 0.80f;
+
+	ImGui::SetNextWindowSize(winSize);
+	ImGui::SetNextWindowPos((ImGui::GetIO().DisplaySize - winSize) * 0.5f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 5.f));
+	if (ImGui::Begin("##IMAGES_EDIT_WINDOW", nullptr, IMAGE_EDIT_WINDOW_FLAGS))
+	{
+		ImGui::BeginChild("##IMAGES_EDIT_CHILD", ImVec2{ 0, 0 }, ImGuiChildFlags_Border);
+		{
+			const float extraSizes = ImGui::GetStyle().ItemSpacing.x + ImGui::GetStyle().ScrollbarSize;
+			const float imageSize = (ImGui::GetContentRegionAvail().x - extraSizes) / 5.0f;
+			float last_button_x2 = 0;
+
+			const float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - extraSizes;
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.y, ImGui::GetStyle().ItemSpacing.y));
+
+			for (auto& thumbnail : thumbnails)
+			{
+				if (last_button_x2 != 0 && (last_button_x2 + imageSize) < window_visible_x2)
+					ImGui::SameLine();
+
+				ImGui::BeginGroup();
+				{
+					const float aspect = thumbnail.second->thumbnailTexture ? thumbnail.second->thumbnailTexture->GetAspect() : 1.0f;
+					std::string filename = thumbnail.second->filename;
+
+					const ImVec2 localImagePos = ImGui::GetCursorScreenPos();
+
+					ImGui::Image(
+						(ImTextureID)(thumbnail.second->thumbnailTexture ? thumbnail.second->thumbnailTexture->GetHandler() : 0),
+						ImVec2(imageSize, imageSize),
+						aspect,
+						ImVec2(0.0f, 0.0f),
+						ImVec2(1.0f, 1.0f),
+						ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f },
+						ImVec4{ 0.0f, 0.0f, 0.0f, 1.0f});
+
+					// check if double clicked
+					if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+					{
+						// 2nd click
+						if (clickedThumbnail == thumbnail.second)
+						{
+							auto timeElapsedSecs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - currClickedTime).count() / 1000.0f;
+							if (timeElapsedSecs < ImGui::GetIO().MouseDoubleClickTime)
+							{
+								clickedThumbnail = nullptr;
+								imageProcessor->LoadImage(LibCore::Filesystem::Path{ thumbnail.first.c_str() });
+							}
+						}
+						else
+						{
+							// 1st click
+							clickedThumbnail = thumbnail.second;
+						}
+
+						currClickedTime = std::chrono::high_resolution_clock::now();
+					}
+
+					float textWidth = ImGui::CalcTextSize(filename.c_str()).x;
+					if (textWidth > imageSize)
+					{
+						while (textWidth > imageSize)
+						{
+							filename.pop_back();
+							textWidth = ImGui::CalcTextSize((filename + "...").c_str()).x;
+						}
+						filename += "...";
+					}
+
+					bool hovered = false;
+					{
+						ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0,0 });
+						float indentWidth = std::max(0.f, 0.5f * (imageSize - textWidth));
+						indentWidth == 0.0f ? void() : ImGui::Indent(indentWidth);
+						ImGui::Text(filename.c_str());
+						hovered = ImGui::IsItemHovered();
+						ImGui::PopStyleVar();
+					}
+					if (hovered)
+					{
+						ImGui::BeginTooltip();
+						ImGui::Text(thumbnail.second->filename.c_str());
+						ImGui::EndTooltip();
+					}
+
+					const auto currCursorPos = ImGui::GetCursorScreenPos();
+					{
+						ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+						ImGui::SetCursorScreenPos(localImagePos);
+						{
+							ImGui::Checkbox(("##SELECT_IMAGE_ID_" + std::to_string((long long)&thumbnail)).c_str(), &thumbnail.second->ToEdit);
+						}
+						ImGui::PopStyleVar();
+					}
+					ImGui::SetCursorScreenPos(currCursorPos);
+
+					last_button_x2 = ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x;
+
+				}
+				ImGui::EndGroup();
+			}
+
+			ImGui::PopStyleVar();
+		}
+		ImGui::EndChild();
+	}
+	ImGui::End();
+
+	ImGui::PopStyleVar();
+
+	return true;
 }
 
 bool UIThumbnails::IsAcceptedImageFormat(const std::string& ext) const

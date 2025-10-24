@@ -14,6 +14,16 @@
 #include <future>
 #include <filesystem>
 
+static const int IMGUI_OVERLAY_FLAGS
+    = ImGuiWindowFlags_AlwaysAutoResize
+    | ImGuiWindowFlags_NoSavedSettings
+    | ImGuiWindowFlags_NoFocusOnAppearing
+    | ImGuiWindowFlags_NoTitleBar
+    | ImGuiWindowFlags_NoNav
+    | ImGuiWindowFlags_NoScrollbar
+    | ImGuiWindowFlags_NoScrollWithMouse
+    | ImGuiWindowFlags_NoCollapse;
+
 int main()
 {
     //_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -24,9 +34,18 @@ int main()
         sharedData->EvtSystem = std::make_shared<LibCore::Event::EventSystem>();
         sharedData->ThreadPool = std::make_shared<LibCore::Async::ThreadPool>();
 
+        bool overlayOpen = false;
+        std::function<bool()> overlayRenderFunc;
         {
+            // emitting drag drop files
             sharedData->Application->RegisterDragDropCallback([sharedData](const std::vector<LibCore::Filesystem::Path>& paths) {
                 sharedData->EvtSystem->Emit(Event::DragDropFiles{ paths });
+            });
+
+            // open overlay function
+            sharedData->EvtSystem->AddListener<Event::OverlayPopup>([&overlayRenderFunc, &overlayOpen](const Event::OverlayPopup& evt) {
+                overlayOpen = true;
+                overlayRenderFunc = evt.OverlayFunc;
             });
 
             // Setup Dear ImGui context
@@ -104,6 +123,25 @@ int main()
                 auto textSize = ImGui::CalcTextSize(textFPS.c_str());
                 ImGui::GetForegroundDrawList()->AddText(ImVec2{ ImGui::GetIO().DisplaySize.x - textSize.x - 2.5f, 2.5f }, 0xff0000ff, textFPS.c_str());
                 
+                // Overlay
+                if(overlayOpen && overlayRenderFunc)
+                {
+                    ImVec2 screenRes = ImGui::GetIO().DisplaySize;
+                    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.75f));
+                    ImGui::SetNextWindowPos(ImVec2());
+                    ImGui::SetNextWindowSize(ImVec2(screenRes.x, screenRes.y));
+                    if (ImGui::Begin("##APPLICATION_OVERLAY", nullptr, IMGUI_OVERLAY_FLAGS))
+                    {
+                        if (ImGui::IsWindowFocused())
+                            ImGui::SetNextWindowFocus();
+                        ImGui::End();
+                    }
+                    ImGui::PopStyleColor();
+
+                    overlayOpen = overlayRenderFunc();
+
+                } // end overlay
+
                 // Rendering
                 ImGui::Render();
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
