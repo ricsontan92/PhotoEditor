@@ -18,8 +18,14 @@ namespace LibCore
 			std::vector<File> ListFiles(bool recursive) const;
 			std::vector<Path> ListPaths(bool recursive) const;
 			std::vector<Directory> ListDirectories(bool recursive) const;
+			std::string String() const;
 
+			Directory operator/(const std::string& lhs) const;
+
+			void Create() const;
 			static Directory Create(const char* path);
+			static Directory OpenDirectoryDialog();
+
 
 		private:
 			std::filesystem::path path;

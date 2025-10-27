@@ -136,6 +136,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Events.h" />
+    <ClCompile Include="ImageProcessingExecutor.cpp" />
     <ClCompile Include="ImageProcessor.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="PhotoEditor.cpp" />
@@ -161,6 +162,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GlobalDefs.h" />
+    <ClInclude Include="ImageProcessingExecutor.h" />
     <ClInclude Include="ImageProcessor.h" />
     <ClInclude Include="PhotoEditor.h" />
     <ClInclude Include="UIEnhance.h" />

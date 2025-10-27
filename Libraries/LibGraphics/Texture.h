@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "LibCore/Vec4.h"
+#include "LibCore/Future.h"
+#include "LibCore/ThreadPool.h"
 
 namespace LibGraphics
 {
@@ -40,6 +42,7 @@ namespace LibGraphics
 		LibCore::Math::Vec4 GetPixel(int x, int y) const;
 
 		bool Save(const std::string& path) const;
+		LibCore::Async::Future<bool> Save(const std::string& path, LibCore::Async::ThreadPool& threadPool) const;
 		std::shared_ptr<Texture> Clone() const;
 
 		// static here

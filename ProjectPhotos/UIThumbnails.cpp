@@ -10,6 +10,12 @@
 
 #define THUMBNAIL_MAX_SIZE 512
 
+static const auto IMAGE_EDIT_WINDOW_FLAGS
+		= ImGuiWindowFlags_NoCollapse
+		| ImGuiWindowFlags_NoDecoration
+		| ImGuiWindowFlags_NoSavedSettings;
+
+
 static std::set<std::string> ACCEPTED_IMAGE_TYPE{
     ".jpeg",
     ".jpg",
@@ -76,6 +82,7 @@ void UIThumbnails::Init()
 void UIThumbnails::Render(float dt)
 {
 	LoadImages();
+	imageProcExecutor ? imageProcExecutor->Update() : void();
 
 	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 	ImGui::SliderFloat("##THUMBNAIL_SCALE_SLIDER", &thumbnailScale, 0.25f, 1.0f, "");
@@ -223,11 +230,6 @@ void UIThumbnails::LoadImages()
 
 bool UIThumbnails::ShowImageToEdit()
 {
-	static const auto IMAGE_EDIT_WINDOW_FLAGS
-		= ImGuiWindowFlags_NoCollapse
-		| ImGuiWindowFlags_NoDecoration
-		| ImGuiWindowFlags_NoSavedSettings;
-
 	bool openPopup = true;
 	const ImVec2 winSize = ImGui::GetIO().DisplaySize * 0.80f;
 
@@ -317,7 +319,42 @@ bool UIThumbnails::ShowImageToEdit()
 		const float btnSize = ImGui::GetContentRegionAvail().x * 0.5f;
 		if (ImGui::Button("Apply##APPLY_IMAGES_EDIT", ImVec2{ btnSize , 0 }))
 		{
+			try
+			{
+				std::string currDateTime;
+				{
+					// Get current time as time_point
+					auto now = std::chrono::system_clock::now();
+					std::time_t t = std::chrono::system_clock::to_time_t(now);
 
+					// Convert to local time
+					std::tm localTime;
+					localtime_s(&localTime, &t);  // Windows
+
+					// Format as YYYYMMDDHHMMSS
+					std::ostringstream oss;
+					oss << std::put_time(&localTime, "%d%b%Y_%H-%M-%S");
+					currDateTime = oss.str();
+				}
+
+				const LibCore::Filesystem::Directory saveDir = LibCore::Filesystem::Directory::OpenDirectoryDialog() / ("Image_Export_" + currDateTime);
+				std::vector<LibCore::Filesystem::File> imagesToEdit;
+				for (auto& thumbnail : thumbnails)
+				{
+					if (thumbnail.second->ToEdit)
+						imagesToEdit.push_back(LibCore::Filesystem::File{ thumbnail.first.c_str() });
+				}
+
+				imageProcExecutor = ImageProcessingExecutor::Run(imageProcessor, imagesToEdit, saveDir);
+				UISharedData->EvtSystem->Emit(Event::OverlayPopup{ [this]() {
+					return ShowEditingImages();
+				} });
+				openPopup = false;
+			}
+			catch (const std::exception& e)
+			{
+				std::cout << "Failed to save: " << e.what() << std::endl;
+			}
 		}
 
 		ImGui::SameLine();
@@ -332,6 +369,26 @@ bool UIThumbnails::ShowImageToEdit()
 	ImGui::PopStyleVar();
 
 	return openPopup;
+}
+
+bool UIThumbnails::ShowEditingImages()
+{
+	const ImVec2 winSize = ImGui::GetIO().DisplaySize * 0.50f;
+
+	ImGui::SetNextWindowSize(winSize);
+	ImGui::SetNextWindowPos((ImGui::GetIO().DisplaySize - winSize) * 0.5f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 5.f));
+	if (ImGui::Begin("##IMAGES_EDIT_WINDOW_COMPLETED", nullptr, IMAGE_EDIT_WINDOW_FLAGS))
+	{
+		ImGui::Text("Completed: %.2f%%", imageProcExecutor->PercentageCompleted());
+	}
+	ImGui::End();
+	ImGui::PopStyleVar();
+
+	if (imageProcExecutor->Completed())
+		imageProcExecutor = nullptr;
+
+	return imageProcExecutor != nullptr;
 }
 
 bool UIThumbnails::IsAcceptedImageFormat(const std::string& ext) const

@@ -10,6 +10,7 @@ namespace LibCore
 		{
 		public:
 			static std::string ToLower(std::string str);
+			static std::string WStringToString(const std::wstring& wstr);
 		};
 	}
 }

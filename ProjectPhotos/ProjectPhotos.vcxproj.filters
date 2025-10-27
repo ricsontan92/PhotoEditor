@@ -43,6 +43,9 @@
     <ClCompile Include="UIThumbnails.cpp">
       <Filter>PhotoEditor\Panels</Filter>
     </ClCompile>
+    <ClCompile Include="ImageProcessingExecutor.cpp">
+      <Filter>PhotoEditor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PhotoEditor.h">
@@ -68,6 +71,9 @@
     </ClInclude>
     <ClInclude Include="UIThumbnails.h">
       <Filter>PhotoEditor\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageProcessingExecutor.h">
+      <Filter>PhotoEditor</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

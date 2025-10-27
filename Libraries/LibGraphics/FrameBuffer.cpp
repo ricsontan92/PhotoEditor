@@ -236,13 +236,14 @@ namespace LibGraphics
 		else if (ext == ".jpg" || ext == ".jpeg")
 			saveType = SOIL_SAVE_TYPE_JPG;
 
-		return SOIL_save_image(
+		return SOIL_save_image_quality(
 			path.c_str(),
 			saveType,
 			GetWidth(),
 			GetHeight(),
 			channels,
-			pixels.data());
+			pixels.data(), 
+			100);
 	}
 
 	float FrameBuffer::GetAspect() const

@@ -2,6 +2,7 @@
 #include "GL/glew.h"
 #include "soil2/src/SOIL2/SOIL2.h"
 #include "soil2/src/SOIL2/image_helper.h"
+#include "LibCore/StringUtils.h"
 
 #include <array>
 #include <filesystem>
@@ -191,13 +192,62 @@ namespace LibGraphics
 		Bind();
 		glGetTexImage(GL_TEXTURE_2D, 0, channels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
 
-		return SOIL_save_image(
+		auto saveType = SOIL_SAVE_TYPE_QOI;
+
+		if (ext == ".bmp")
+			saveType = SOIL_SAVE_TYPE_BMP;
+		else if (ext == ".tga")
+			saveType = SOIL_SAVE_TYPE_TGA;
+		else if (ext == ".dds")
+			saveType = SOIL_SAVE_TYPE_DDS;
+		else if (ext == ".png")
+			saveType = SOIL_SAVE_TYPE_PNG;
+		else if (ext == ".jpg" || ext == ".jpeg")
+			saveType = SOIL_SAVE_TYPE_JPG;
+
+		return SOIL_save_image_quality(
 			path.c_str(),
-			ext == ".bmp" ? SOIL_SAVE_TYPE_BMP : (ext == ".tga" ? SOIL_SAVE_TYPE_TGA : SOIL_SAVE_TYPE_DDS),
+			saveType,
 			GetWidth(),
 			GetHeight(),
 			channels,
-			pixels.data());
+			pixels.data(),
+			100);
+	}
+
+	LibCore::Async::Future<bool> Texture::Save(const std::string& path, LibCore::Async::ThreadPool& threadPool) const
+	{
+		std::string ext = LibCore::Utils::String::ToLower(std::filesystem::path{ path }.extension().string());
+		int channels = format == FORMAT::RGBA32 ? 4 : 3;
+		std::vector<unsigned char> pixels((size_t)GetWidth() * GetHeight() * channels, 0);
+		Bind();
+		glGetTexImage(GL_TEXTURE_2D, 0, channels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+
+		auto saveType = SOIL_SAVE_TYPE_QOI;
+
+		if (ext == ".bmp")
+			saveType = SOIL_SAVE_TYPE_BMP;
+		else if (ext == ".tga")
+			saveType = SOIL_SAVE_TYPE_TGA;
+		else if (ext == ".dds")
+			saveType = SOIL_SAVE_TYPE_DDS;
+		else if (ext == ".png")
+			saveType = SOIL_SAVE_TYPE_PNG;
+		else if (ext == ".jpg" || ext == ".jpeg")
+			saveType = SOIL_SAVE_TYPE_JPG;
+
+		return threadPool.Enqueue([path, saveType, channels, pixels](unsigned width, unsigned height) {
+			return SOIL_save_image_quality(
+				path.c_str(),
+				saveType,
+				width,
+				height,
+				channels,
+				pixels.data(),
+				100) == 1;
+		}, 
+		GetWidth(),
+		GetHeight());
 	}
 
 	std::shared_ptr<Texture> Texture::Clone() const

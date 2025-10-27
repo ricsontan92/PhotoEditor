@@ -6,6 +6,7 @@
 
 #include "LibCore/Path.h"
 #include "LibCore/Future.h"
+#include "LibCore/ThreadPool.h"
 
 #include "LibCV/ImageFX.h"
 
@@ -67,6 +68,13 @@ public:
 	bool LoadImage(const LibCore::Filesystem::Path& path);
 	bool IsLoadImageCompleted();
 
+	LibCore::Async::Future<LibCV::ImageData> GenCVEnhancedImage(
+		LibCore::Async::ThreadPool& threadPool,
+		const LibCore::Filesystem::File& filePath) const;
+
+	// MUST BE in main thread
+	std::shared_ptr<LibGraphics::Texture> GenGLEnhancedImage(const LibCV::ImageData& imgData) const;
+
 	const std::shared_ptr<LibGraphics::Texture>& GetProcessedGLImage() const;
 	const std::shared_ptr<LibGraphics::Texture>& GetOriginalGLImage() const;
 
@@ -87,6 +95,7 @@ public:
 
 	unsigned GetImageHeight() const;
 	unsigned GetImageWidth() const;
+	std::shared_ptr< ImageProcessor> Clone() const;
 
 private:
 	unsigned imageFXFlags;
@@ -95,6 +104,8 @@ private:
 	std::vector<std::shared_ptr<FilterData>> imageFilters;
 	
 private:
+	friend class ImageProcessingExecutor;
+
 	void ProcessGLChanges();
 	std::shared_ptr<LibGraphics::TextureFilter> sharpnessFilter;
 	std::shared_ptr<LibGraphics::TextureFilter> contrastFilter;

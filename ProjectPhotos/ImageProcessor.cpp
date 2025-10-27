@@ -32,8 +32,8 @@ void ImageProcessor::Update()
 	{
 		loadImageFuture.Get();
 
+		// processed image data into GPU
 		const auto imageData = procCVImage->GetImageData();
-
 		procGLImagesPre = LibGraphics::Texture::CreateFromData(
 			imageData.Pixels,
 			imageData.ImageWidth,
@@ -71,6 +71,40 @@ bool ImageProcessor::LoadImage(const LibCore::Filesystem::Path& path)
 bool ImageProcessor::IsLoadImageCompleted()
 {
 	return !loadImageFuture.Valid() || GetProcessedGLImage() != nullptr;
+}
+
+
+LibCore::Async::Future<LibCV::ImageData> ImageProcessor::GenCVEnhancedImage(
+	LibCore::Async::ThreadPool& threadPool,
+	const LibCore::Filesystem::File& filePath) const
+{
+	return threadPool.Enqueue([filePath](unsigned fxFlags) {
+		auto results = LibCV::Image::Create(filePath.FilePath().String());
+		results = LibCV::ImageFX::AutoEnhance(results, fxFlags);
+		return results->GetImageData();
+	}, imageFXFlags);
+}
+
+std::shared_ptr<LibGraphics::Texture> ImageProcessor::GenGLEnhancedImage(const LibCV::ImageData& imageData) const
+{
+	auto results = LibGraphics::Texture::CreateFromData(
+		imageData.Pixels,
+		imageData.ImageWidth,
+		imageData.ImageHeight,
+		LibGraphics::Texture::FORMAT::BGR24);
+
+	results = brightnessFilter->Apply(results);
+	results = contrastFilter->Apply(results);
+	results = sharpnessFilter->Apply(results);
+	results = hslFilter->Apply(results);
+	results = temperatureFilter->Apply(results);
+	results = gammaFilter->Apply(results);
+
+	// apply filters
+	for (auto& filter : imageFilters)
+		results = std::move(filter->Active ? filter->Filter->Apply(results) : results);
+
+	return results;
 }
 
 const std::shared_ptr<LibGraphics::Texture>& ImageProcessor::GetProcessedGLImage() const
@@ -246,4 +280,51 @@ unsigned ImageProcessor::GetImageHeight() const
 unsigned ImageProcessor::GetImageWidth() const
 {
 	return origCVImage ? origCVImage->Width() : 0;
+}
+
+std::shared_ptr< ImageProcessor> ImageProcessor::Clone() const
+{
+	auto results = std::make_shared<ImageProcessor>();
+
+	for (auto& filter : imageFilters)
+	{
+		results->imageFilters.push_back({});
+		results->imageFilters.back()->Name = filter->Name;
+		results->imageFilters.back()->Active = filter->Active;
+		results->imageFilters.back()->Filter = filter->Filter->Clone();
+	}
+
+	results->sharpnessFilter->SetFloat("uSharpness", GetImageSetting(IMAGE_SETTINGS::SHARPNESS));
+	results->contrastFilter->SetFloat("uContrast", GetImageSetting(IMAGE_SETTINGS::CONSTRAST));
+	results->brightnessFilter->SetFloat("uBrightness", GetImageSetting(IMAGE_SETTINGS::BRIGHTNESS));
+	results->hslFilter->SetFloat("uHue", GetImageSetting(IMAGE_SETTINGS::HUE));
+	results->hslFilter->SetFloat("uSaturation", GetImageSetting(IMAGE_SETTINGS::SATURATION));
+	results->hslFilter->SetFloat("uLightness", GetImageSetting(IMAGE_SETTINGS::LIGHTNESS));
+	results->temperatureFilter->SetFloat("uTemperature", GetImageSetting(IMAGE_SETTINGS::TEMPERATURE));
+	results->gammaFilter->SetFloat("uGamma", GetImageSetting(IMAGE_SETTINGS::GAMMA));
+
+	results->imageFXFlags = imageFXFlags;
+
+	results->procCVImage = this->procCVImage->Clone();
+	results->origCVImage = this->origCVImage->Clone();
+
+	// processed image data into GPU
+	const auto imageData = results->procCVImage->GetImageData();
+	results->procGLImagesPre = LibGraphics::Texture::CreateFromData(
+		imageData.Pixels,
+		imageData.ImageWidth,
+		imageData.ImageHeight,
+		LibGraphics::Texture::FORMAT::BGR24);
+
+	// convert to GPU for purely loaded image
+	const auto origImageData = results->origCVImage->Resize(static_cast<float>(results->procCVImage->Width()) / results->origCVImage->Width())->GetImageData();
+	results->origGLImage = LibGraphics::Texture::CreateFromData(
+		origImageData.Pixels,
+		origImageData.ImageWidth,
+		origImageData.ImageHeight,
+		LibGraphics::Texture::FORMAT::BGR24);
+
+	results->ProcessGLChanges();
+
+	return results;
 }

@@ -4,6 +4,7 @@
 
 #include "GlobalDefs.h"
 #include "ImageProcessor.h"
+#include "ImageProcessingExecutor.h"
 
 #include "LibCore/File.h"
 #include "LibCore/ThreadPool.h"
@@ -21,6 +22,7 @@ private:
     void Clear();
     void LoadImages();
     bool ShowImageToEdit();
+    bool ShowEditingImages();
     bool IsAcceptedImageFormat(const std::string& ext) const;
 
 private:
@@ -42,4 +44,7 @@ private:
     float thumbnailScale;
     std::chrono::high_resolution_clock::time_point currClickedTime;
     std::shared_ptr<Thumbnail> clickedThumbnail;
+
+private:
+    std::shared_ptr< ImageProcessingExecutor> imageProcExecutor;
 };
